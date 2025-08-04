@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>Instagram View Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; padding: 15px; background: #f9f9f9; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; border-radius: 8px; border: 1px solid #ccc; }
+    button { background-color: #007bff; color: white; border: none; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #007bff; color: white; }
+  </style>
+</head>
+<body>
+  <h2>🎯 Reels View Tracker</h2>
+
+  <label>👤 Instagram ID:</label>
+  <input id="instaId" type="text" placeholder="jaise: officialteeno1m">
+
+  <label>🎥 Reel Link:</label>
+  <input id="reelUrl" type="text" placeholder="https://www.instagram.com/reel/xyz123/">
+
+  <button onclick="submitReel()">✅ Submit Reel</button>
+
+  <table id="reelTable">
+    <thead>
+      <tr>
+        <th>📎 Link</th>
+        <th>👁️ Views</th>
+        <th>💰 Earning ₹</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://cefvdprnwfxuvyrhycwp.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlZnZkcHJud2Z4dXZ5cmh5Y3dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDA2NTQsImV4cCI6MjA2OTgxNjY1NH0.Bg07GePnVRnkKFrhHIMPwm4zEeXXYY_quFeJQGdo06Y';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    async function submitReel() {
+      const instagram_id = document.getElementById("instaId").value.trim();
+      const reel_url = document.getElementById("reelUrl").value.trim();
+
+      if (!instagram_id || !reel_url.includes("instagram.com/reel/")) {
+        alert("Valid Instagram ID aur Reel link daalo!");
+        return;
+      }
+
+      // Insert only if not duplicate
+      const { data, error } = await supabase
+        .from("view_records")
+        .insert([{ instagram_id, reel_url, views: 0, payment_per_million: 900, total_earning_inr: 0 }], { upsert: false })
+        .select();
+
+      if (error) {
+        if (error.message.includes("duplicate key value")) {
+          alert("⛔ Ye link already submitted hai!");
+        } else {
+          alert("❌ Error: " + error.message);
+        }
+        return;
+      }
+
+      alert("🎉 Link saved successfully!");
+      document.getElementById("reelUrl").value = "";
+      loadReels(instagram_id);
+    }
+
+    async function loadReels(instagram_id) {
+      const { data, error } = await supabase
+        .from("view_records")
+        .select("*")
+        .eq("instagram_id", instagram_id);
+
+      const tbody = document.querySelector("#reelTable tbody");
+      tbody.innerHTML = "";
+
+      if (data && data.length > 0) {
+        data.forEach(row => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><a href="${row.reel_url}" target="_blank">🔗 Link</a></td>
+            <td>${row.views}</td>
+            <td>₹ ${row.total_earning_inr.toFixed(2)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    document.getElementById("instaId").addEventListener("change", (e) => {
+      loadReels(e.target.value.trim());
+    });
+  </script>
+</body>
+</html>
